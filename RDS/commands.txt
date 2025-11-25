@@ -1,0 +1,97 @@
+# ---------------------------
+# 1. EC2 CONNECTION
+# ---------------------------
+ssh -i <your-key>.pem ec2-user@<EC2-Public-IP>
+
+# Create a dedicated user
+sudo useradd word
+sudo passwd word
+sudo su - word
+
+
+# ---------------------------
+# 2. INSTALL APACHE & PHP
+# ---------------------------
+sudo dnf install httpd php php-mysqlnd -y
+sudo systemctl enable --now httpd
+
+
+# ---------------------------
+# 3. DOWNLOAD & CONFIGURE WORDPRESS
+# ---------------------------
+wget https://wordpress.org/latest.tar.gz
+tar -xzf latest.tar.gz
+
+# Copy WordPress files to Apache root
+sudo cp -r wordpress/* /var/www/html/
+
+# Fix permissions
+sudo chown -R apache:apache /var/www/html
+sudo systemctl restart httpd
+
+
+# ---------------------------
+# 4. SECURITY GROUP SETUP
+# (Manual in AWS Console)
+# ---------------------------
+# EC2 SG: allow HTTP (80), SSH
+# RDS SG: allow 3306 from EC2 security group
+
+
+# ---------------------------
+# 5. INSTALL MYSQL CLIENT (Amazon Linux 2023)
+# ---------------------------
+sudo dnf install mariadb105 -y
+
+# Verify install
+mysql --version
+
+
+# ---------------------------
+# 6. CONNECT TO RDS DATABASE
+# ---------------------------
+mysql -h <RDS-ENDPOINT> -u admin -p
+
+
+# ---------------------------
+# 7. DATABASE OPERATIONS
+# ---------------------------
+# List databases
+SHOW DATABASES;
+
+# Select your WP DB
+USE databasedb;
+
+# View WP users
+SELECT ID, user_login FROM wp_users;
+
+# Update WordPress admin password
+UPDATE wp_users 
+SET user_pass = MD5('Admin@123') 
+WHERE ID = 1;
+
+EXIT;
+
+
+# ---------------------------
+# 8. WORDPRESS INSTALLATION
+# ---------------------------
+# Browser:
+# http://<EC2-Public-IP>/wp-admin
+
+# Complete setup:
+# - Site title
+# - Username
+# - Password
+# - Email
+
+
+# ---------------------------
+# 9. VERIFY APACHE & WORDPRESS
+# ---------------------------
+sudo systemctl status httpd
+sudo systemctl restart httpd
+
+# Optional logs
+sudo tail -f /var/log/httpd/error_log
+sudo tail -f /var/log/httpd/access_log
